@@ -50,7 +50,7 @@ text{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberatio
 <text x="559.2" y="90.8" class="value">Windows/WSL2 · Linux · Android</text>
 <text x="411.0" y="106.8" class="key" textLength="54.6" lengthAdjust="spacingAndGlyphs">Uptime:</text>
 <text x="465.6" y="106.8" class="dots" textLength="93.6" lengthAdjust="spacingAndGlyphs"> .......... </text>
-<text x="559.2" y="106.8" class="value" textLength="218.4" lengthAdjust="spacingAndGlyphs">36 years, 10 months, 25 days</text>
+<text x="559.2" y="106.8" class="value" textLength="202.8" lengthAdjust="spacingAndGlyphs">44 years, 5 months, 4 days</text>
 <text x="411.0" y="122.8" class="key" textLength="39.0" lengthAdjust="spacingAndGlyphs">Host:</text>
 <text x="450.0" y="122.8" class="dots" textLength="109.2" lengthAdjust="spacingAndGlyphs"> ............ </text>
 <text x="559.2" y="122.8" class="value">GitHub · Vibe-Coding-Playground</text>
@@ -83,15 +83,15 @@ text{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberatio
 <text x="528.0" y="330.8" class="rule">───────────────────────────────────────────</text>
 <text x="411.0" y="346.8" class="key" textLength="46.8" lengthAdjust="spacingAndGlyphs">Repos:</text>
 <text x="457.8" y="346.8" class="dots" textLength="101.4" lengthAdjust="spacingAndGlyphs"> ........... </text>
-<text x="559.2" y="346.8" class="value">? (⭐ ?)</text>
+<text x="559.2" y="346.8" class="value">7 (⭐ 7)</text>
 <text x="411.0" y="362.8" class="key" textLength="93.6" lengthAdjust="spacingAndGlyphs">Contributed:</text>
 <text x="504.6" y="362.8" class="dots" textLength="54.6" lengthAdjust="spacingAndGlyphs"> ..... </text>
-<text x="559.2" y="362.8" class="value" textLength="7.8" lengthAdjust="spacingAndGlyphs">?</text>
+<text x="559.2" y="362.8" class="value" textLength="15.6" lengthAdjust="spacingAndGlyphs">13</text>
 <text x="411.0" y="378.8" class="key" textLength="62.4" lengthAdjust="spacingAndGlyphs">Commits:</text>
 <text x="473.4" y="378.8" class="dots" textLength="85.8" lengthAdjust="spacingAndGlyphs"> ......... </text>
-<text x="559.2" y="378.8" class="value" textLength="7.8" lengthAdjust="spacingAndGlyphs">?</text>
+<text x="559.2" y="378.8" class="value" textLength="23.4" lengthAdjust="spacingAndGlyphs">377</text>
 <text x="411.0" y="394.8" class="key" textLength="109.2" lengthAdjust="spacingAndGlyphs">Lines of Code:</text>
 <text x="520.2" y="394.8" class="dots" textLength="39.0" lengthAdjust="spacingAndGlyphs"> ... </text>
-<text x="559.2" y="394.8" class="value" textLength="85.8" lengthAdjust="spacingAndGlyphs">? (+? / -?)</text>
+<text x="559.2" y="394.8" class="value" textLength="218.4" lengthAdjust="spacingAndGlyphs">211,447 (<tspan class="add">+246,819</tspan> / <tspan class="del">-35,372</tspan>)</text>
 </g>
 </svg>
