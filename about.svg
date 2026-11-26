@@ -87,12 +87,12 @@ text{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberatio
 <text x="655.8" y="456.0" class="value">7 (⭐ 7)</text>
 <text x="515.4" y="472.0" class="key" textLength="93.6" lengthAdjust="spacingAndGlyphs">Contributed:</text>
 <text x="609.0" y="472.0" class="dots" textLength="46.8" lengthAdjust="spacingAndGlyphs"> .... </text>
-<text x="655.8" y="472.0" class="value" textLength="7.8" lengthAdjust="spacingAndGlyphs">?</text>
+<text x="655.8" y="472.0" class="value" textLength="15.6" lengthAdjust="spacingAndGlyphs">13</text>
 <text x="515.4" y="488.0" class="key" textLength="62.4" lengthAdjust="spacingAndGlyphs">Commits:</text>
 <text x="577.8" y="488.0" class="dots" textLength="78.0" lengthAdjust="spacingAndGlyphs"> ........ </text>
-<text x="655.8" y="488.0" class="value" textLength="23.4" lengthAdjust="spacingAndGlyphs">375</text>
+<text x="655.8" y="488.0" class="value" textLength="23.4" lengthAdjust="spacingAndGlyphs">378</text>
 <text x="515.4" y="504.0" class="key" textLength="109.2" lengthAdjust="spacingAndGlyphs">Lines of Code:</text>
 <text x="624.6" y="504.0" class="dots" textLength="31.2" lengthAdjust="spacingAndGlyphs"> .. </text>
-<text x="655.8" y="504.0" class="value" textLength="218.4" lengthAdjust="spacingAndGlyphs">211,443 (<tspan class="add">+246,793</tspan> / <tspan class="del">-35,350</tspan>)</text>
+<text x="655.8" y="504.0" class="value" textLength="218.4" lengthAdjust="spacingAndGlyphs">211,521 (<tspan class="add">+247,038</tspan> / <tspan class="del">-35,517</tspan>)</text>
 </g>
 </svg>
