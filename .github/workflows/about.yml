@@ -1,0 +1,47 @@
+name: Render about.svg
+
+on:
+  schedule:
+    - cron: "17 3 * * *"   # daily -> keeps uptime, stats and avatar fresh
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - about.md
+      - scripts/render_about.py
+      - .github/workflows/about.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: about-svg
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - run: pip install pillow
+
+      - name: Render
+        run: python scripts/render_about.py
+        env:
+          ENV_BIRTHDAY: ${{ vars.ENV_BIRTHDAY }}
+          # optional: repo secret STATS_TOKEN (fine-grained PAT, public read-only) if the default token is not enough
+          GITHUB_TOKEN: ${{ secrets.STATS_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add about.svg
+          git diff --cached --quiet && echo "about.svg unchanged" && exit 0
+          git commit -m "chore: update about.svg"
+          git push
