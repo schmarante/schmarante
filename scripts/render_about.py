@@ -3,7 +3,13 @@
 
 Usage:
     python scripts/render_about.py [--user NAME] [--about about.md] [--out about.svg]
-                                   [--cols 44] [--mode color|mono] [--avatar local.png]
+                                   [--cols N] [--mode color|mono] [--avatar local.png]
+                                   [--banner banner.jpg]
+
+Layouts:
+    default        ASCII portrait (GitHub avatar) left, about.md table right
+    --banner IMG   IMG as ASCII banner on top; "About" (rows before the first ##) left,
+                   the ## sections right
 
 Env:
     ENV_BIRTHDAY   Birthday as DD.MM.YYYY -> fills {{UPTIME}} and {{AGE}}
@@ -43,6 +49,12 @@ LINE_H = 16
 ART_FONT_SIZE = FONT_SIZE         # same size as the table text
 ART_CHAR_W = CHAR_W               # cell width, enforced via textLength
 ART_LINE_H = 15                   # a bit tighter than the table so █ rows touch
+BANNER_FONT_SIZE = 8              # banner layout: pixel image on top
+BANNER_CHAR_W = BANNER_FONT_SIZE * 0.6
+BANNER_LINE_H = 9.2               # ~1.15 x font size so █ rows touch
+BANNER_BRIGHTNESS = 1.05
+BANNER_TEXT = ""                  # non-empty -> fill the banner with this text instead (e.g. "schmarante")
+COL_GAP = 5                       # banner layout: characters between the two columns
 PAD = 24
 TITLEBAR = 22
 GAP = 36                          # px between portrait and table
@@ -50,6 +62,8 @@ BG_KEY = (30, 95)                # flood fill: max RGB step between neighbours, 
 
 # Ramp from dark to bright (dark background -> bright pixels get dense glyphs)
 RAMP = " ░▒▓█"
+ASCII_RAMP = " .'`^,:;Il!i~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"  # letters instead of blocks
+BANNER_RAMP = ASCII_RAMP          # banner glyphs; "█" = solid pixels (more legible), RAMP = shaded blocks
 ART_BRIGHTNESS = 1.35             # colour boost for the portrait (1.0 = original avatar)
 ART_CIRCLE = True                 # round crop of the portrait
 ART_REMOVE_BG = False             # True -> hide the avatar background (flood fill from the border)
@@ -260,18 +274,21 @@ def clean(s: str) -> str:
 
 
 # ---- ascii art --------------------------------------------------------------
-def ascii_art(img: Image.Image, cols: int) -> tuple[int, list[list[tuple[str, tuple]]]]:
+def ascii_art(img: Image.Image, cols: int, *, square: bool = True, char_w: float = ART_CHAR_W,
+              line_h: float = ART_LINE_H, brightness: float = ART_BRIGHTNESS, circle: bool = ART_CIRCLE,
+              remove_bg: bool = ART_REMOVE_BG, ramp: str = RAMP, text: str = "") -> tuple[int, list[list[tuple[str, tuple]]]]:
     img = img.convert("RGB")
-    side = min(img.size)
-    left, top = (img.width - side) // 2, (img.height - side) // 2
-    img = img.crop((left, top, left + side, top + side))
+    if square:
+        side = min(img.size)
+        left, top = (img.width - side) // 2, (img.height - side) // 2
+        img = img.crop((left, top, left + side, top + side))
 
-    rows = max(1, round(cols * ART_CHAR_W / ART_LINE_H))
+    rows = max(1, round(cols * char_w / line_h * img.height / img.width))
     small = img.resize((cols, rows), Image.Resampling.LANCZOS)
-    color = ImageEnhance.Color(ImageEnhance.Brightness(small).enhance(ART_BRIGHTNESS)).enhance(1.15)
+    color = ImageEnhance.Color(ImageEnhance.Brightness(small).enhance(brightness)).enhance(1.15)
 
-    keep = background_mask(small) if ART_REMOVE_BG else Image.new("L", small.size, 255)
-    if ART_CIRCLE:
+    keep = background_mask(small) if remove_bg else Image.new("L", small.size, 255)
+    if circle:
         keep = ImageChops.multiply(keep, circle_mask(small.size))
 
     # equalize contrast over the subject only, so facial details survive
@@ -284,7 +301,10 @@ def ascii_art(img: Image.Image, cols: int) -> tuple[int, list[list[tuple[str, tu
         line = []
         for x in range(cols):
             lum = (0.2 + 0.8 * gray.getpixel((x, y)) / 255) * keep.getpixel((x, y)) / 255
-            ch = RAMP[min(len(RAMP) - 1, int(lum ** ART_GAMMA * len(RAMP)))]
+            if text:  # text mosaic: repeat the text, colour per pixel
+                ch = text[(y * cols + x) % len(text)]
+            else:
+                ch = ramp[min(len(ramp) - 1, int(lum ** ART_GAMMA * len(ramp)))]
             line.append((ch, color.getpixel((x, y))))
         grid.append(line)
     return rows, grid
@@ -355,34 +375,15 @@ def value_text(x: float, y: float, value: str) -> str:
     return f'<text x="{x:.1f}" y="{y:.1f}" class="value"{length}>{spans}</text>'
 
 
-def render_svg(grid, mode: str, title: str, rows: list[tuple]) -> str:
-    art_cols = len(grid[0])
-    key_w = max((len(r[1]) for r in rows if r[0] == "kv"), default=8) + 5  # "key:" + " ... "
-    val_w = max((len(r[2]) for r in rows if r[0] == "kv"), default=10)
-    quote_w = max((len(r[1]) + 2 for r in rows if r[0] == "quote"), default=0)
-    table_w = max(key_w + val_w, len(title), quote_w, 30)
-
-    art_x = PAD
-    tab_x = PAD + art_cols * ART_CHAR_W + GAP
-    top = PAD + TITLEBAR
-
-    table_h = ((2 if title else 0) + sum(row_lines(r) for r in rows)) * LINE_H
-    art_h = len(grid) * ART_LINE_H
-    content_h = max(table_h, art_h)
-    art_top = top + (content_h - art_h) / 2
-    tab_top = top + (content_h - table_h) / 2
-    width = tab_x + table_w * CHAR_W + PAD
-    height = top + content_h + PAD
-
-    out = [
+def svg_open(width: float, height: float, label: str) -> list[str]:
+    return [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width:.0f}" height="{height:.0f}" '
-        f'viewBox="0 0 {width:.0f} {height:.0f}" role="img" aria-label="{escape(title or "about")}">',
+        f'viewBox="0 0 {width:.0f} {height:.0f}" role="img" aria-label="{escape(label)}">',
         "<style>",
         "text{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;"
         f"font-size:{FONT_SIZE}px;white-space:pre}}",
         *(f".{k}{{fill:{v}}}" for k, v in THEME.items() if k not in ("bg", "border")),
         ".title{font-weight:700}.section{font-weight:700}.quote{font-style:italic}",
-        f".a{{font-size:{ART_FONT_SIZE}px;font-weight:700}}",
         "</style>",
         f'<rect x="0.5" y="0.5" width="{width - 1:.0f}" height="{height - 1:.0f}" rx="10" '
         f'fill="{THEME["bg"]}" stroke="{THEME["border"]}"/>',
@@ -391,15 +392,18 @@ def render_svg(grid, mode: str, title: str, rows: list[tuple]) -> str:
         '<g xml:space="preserve">',
     ]
 
-    # left: ascii art (baseline offset ~ 0.8 line)
+
+def draw_art(out: list[str], grid, x: float, top: float, mode: str,
+             font_size: float, char_w: float, line_h: float) -> None:
+    style = f'style="font-size:{font_size}px;font-weight:700"'
     for i, line in enumerate(grid):
-        y = art_top + i * ART_LINE_H + ART_LINE_H * 0.8
+        y = top + i * line_h + line_h * 0.8
         text = "".join(ch for ch, _ in line)
         if not text.strip():
             continue
-        art_len = f'textLength="{len(text) * ART_CHAR_W:.1f}" lengthAdjust="spacingAndGlyphs"'
+        length = f'textLength="{len(text) * char_w:.1f}" lengthAdjust="spacingAndGlyphs"'
         if mode == "mono":
-            out.append(f'<text x="{art_x:.1f}" y="{y:.1f}" class="a art" {art_len}>{escape(text)}</text>')
+            out.append(f'<text x="{x:.1f}" y="{y:.1f}" class="art" {style} {length}>{escape(text)}</text>')
             continue
         spans, run, run_fill = [], "", None
         for ch, rgb in line:
@@ -409,40 +413,98 @@ def render_svg(grid, mode: str, title: str, rows: list[tuple]) -> str:
                 run = ""
             run, run_fill = run + ch, fill
         spans.append(f'<tspan fill="{run_fill}">{escape(run)}</tspan>')
-        out.append(f'<text x="{art_x:.1f}" y="{y:.1f}" class="a" {art_len}>{"".join(spans)}</text>')
+        out.append(f'<text x="{x:.1f}" y="{y:.1f}" {style} {length}>{"".join(spans)}</text>')
 
-    # right: neofetch-style table
-    line_no = 0
 
+def table_size(title: str, rows: list[tuple], min_w: int = 30) -> tuple[int, int, int]:
+    """(key column width, total width, number of lines) of a table, in characters/lines."""
+    key_w = max((len(r[1]) for r in rows if r[0] == "kv"), default=8) + 5  # "key:" + " ... "
+    val_w = max((len(r[2]) for r in rows if r[0] == "kv"), default=10)
+    quote_w = max((len(r[1]) + 2 for r in rows if r[0] == "quote"), default=0)
+    width = max(key_w + val_w, len(title), quote_w, min_w)
+    lines = (2 if title else 0) + sum(row_lines(r) for r in rows)
+    if not title and rows and rows[0][0] != "kv":
+        lines -= 1  # no blank line above a leading section
+    return key_w, width, lines
+
+
+def draw_table(out: list[str], x: float, top: float, title: str, rows: list[tuple],
+               key_w: int, width: int) -> None:
     def y_of(n: int) -> float:
-        return tab_top + n * LINE_H + LINE_H * 0.8
+        return top + n * LINE_H + LINE_H * 0.8
 
+    line_no = 0
     if title:
-        out.append(t(tab_x, y_of(0), title, "title"))
-        out.append(t(tab_x, y_of(1), "─" * table_w, "rule", fit=False))
+        out.append(t(x, y_of(0), title, "title"))
+        out.append(t(x, y_of(1), "─" * width, "rule", fit=False))
         line_no = 2
-    for row in rows:
+    for i, row in enumerate(rows):
+        if row[0] != "kv" and (title or i > 0):
+            line_no += 1  # blank line before sections and quotes
+        y = y_of(line_no)
         if row[0] == "quote":
-            line_no += 1  # blank line before quote
-            y = y_of(line_no)
-            out.append(f'<rect x="{tab_x:.1f}" y="{y - FONT_SIZE + 1:.1f}" width="3" height="{LINE_H:.0f}" '
+            out.append(f'<rect x="{x:.1f}" y="{y - FONT_SIZE + 1:.1f}" width="3" height="{LINE_H:.0f}" '
                        f'rx="1.5" class="qbar"/>')
-            out.append(t(tab_x + 2 * CHAR_W, y, row[1], "quote", fit=False))
+            out.append(t(x + 2 * CHAR_W, y, row[1], "quote", fit=False))
         elif row[0] == "section":
-            line_no += 1  # blank line before section
             label = f"─ {row[1]} "
-            out.append(t(tab_x, y_of(line_no), label, "section", fit=False))
-            out.append(t(tab_x + len(label) * CHAR_W, y_of(line_no),
-                         "─" * max(0, table_w - len(label)), "rule", fit=False))
+            out.append(t(x, y, label, "section", fit=False))
+            out.append(t(x + len(label) * CHAR_W, y, "─" * max(0, width - len(label)), "rule", fit=False))
         else:
             _, key, value = row
             head = f"{key}:"
             dots = " " + "." * (key_w - len(head) - 2) + " "
-            out.append(t(tab_x, y_of(line_no), head, "key"))
-            out.append(t(tab_x + len(head) * CHAR_W, y_of(line_no), dots, "dots"))
-            out.append(value_text(tab_x + key_w * CHAR_W, y_of(line_no), value))
+            out.append(t(x, y, head, "key"))
+            out.append(t(x + len(head) * CHAR_W, y, dots, "dots"))
+            out.append(value_text(x + key_w * CHAR_W, y, value))
         line_no += 1
 
+
+def render_portrait(grid, mode: str, title: str, rows: list[tuple]) -> str:
+    """Layout A: ASCII portrait left, whole table right."""
+    key_w, table_w, lines = table_size(title, rows)
+    art_x = PAD
+    tab_x = PAD + len(grid[0]) * ART_CHAR_W + GAP
+    top = PAD + TITLEBAR
+    table_h = lines * LINE_H
+    art_h = len(grid) * ART_LINE_H
+    content_h = max(table_h, art_h)
+    width = tab_x + table_w * CHAR_W + PAD
+    height = top + content_h + PAD
+
+    out = svg_open(width, height, title or "about")
+    draw_art(out, grid, art_x, top + (content_h - art_h) / 2, mode, ART_FONT_SIZE, ART_CHAR_W, ART_LINE_H)
+    draw_table(out, tab_x, top + (content_h - table_h) / 2, title, rows, key_w, table_w)
+    out += ["</g>", "</svg>"]
+    return "\n".join(out) + "\n"
+
+
+def split_columns(rows: list[tuple]) -> tuple[list[tuple], list[tuple]]:
+    """Banner layout: rows before the first `##` section go left (as "About"), sections go right."""
+    first = next((i for i, r in enumerate(rows) if r[0] == "section"), len(rows))
+    return [("section", "About"), *rows[:first]], rows[first:]
+
+
+def banner_columns(rows: list[tuple]) -> tuple[tuple, tuple, float]:
+    left, right = split_columns(rows)
+    lsize, rsize = table_size("", left, 20), table_size("", right, 20)
+    content_w = (lsize[1] + COL_GAP + rsize[1]) * CHAR_W
+    return (left, lsize), (right, rsize), content_w
+
+
+def render_banner(grid, mode: str, title: str, rows: list[tuple]) -> str:
+    """Layout B: pixel banner on top, "About" left and the remaining sections right below."""
+    (left, (lkey, lw, llines)), (right, (rkey, rw, rlines)), content_w = banner_columns(rows)
+    top = PAD + TITLEBAR
+    banner_h = len(grid) * BANNER_LINE_H
+    tab_top = top + banner_h + 2 * LINE_H
+    width = PAD + max(content_w, len(grid[0]) * BANNER_CHAR_W) + PAD
+    height = tab_top + max(llines, rlines) * LINE_H + PAD
+
+    out = svg_open(width, height, title or "about")
+    draw_art(out, grid, PAD, top, mode, BANNER_FONT_SIZE, BANNER_CHAR_W, BANNER_LINE_H)
+    draw_table(out, PAD, tab_top, "", left, lkey, lw)
+    draw_table(out, PAD + (lw + COL_GAP) * CHAR_W, tab_top, "", right, rkey, rw)
     out += ["</g>", "</svg>"]
     return "\n".join(out) + "\n"
 
@@ -457,13 +519,11 @@ def main() -> None:
                     help="width of the ASCII portrait in characters (0 = match table height)")
     ap.add_argument("--mode", choices=("color", "mono"), default=os.getenv("ASCII_MODE", "color"))
     ap.add_argument("--avatar", help="use a local image instead of downloading the GitHub avatar")
+    ap.add_argument("--banner", help="banner layout: this image (path or URL) as pixel art on top, "
+                                     "About left and the other sections right below")
     args = ap.parse_args()
 
     token = os.getenv("GITHUB_TOKEN")
-    if args.avatar:
-        img = Image.open(args.avatar)
-    else:
-        img = Image.open(io.BytesIO(http_get(f"https://github.com/{args.user}.png?size=400")))
 
     values = {
         **uptime(os.getenv("ENV_BIRTHDAY"), date.today()),
@@ -471,12 +531,26 @@ def main() -> None:
         "UPDATED": datetime.now(timezone.utc).strftime("%d.%m.%Y"),
     }
     title, rows = parse_about(args.about, values)
-    cols = args.cols
-    if cols <= 0:  # auto: portrait as tall as the table
-        table_lines = (2 if title else 0) + sum(row_lines(r) for r in rows)
-        cols = max(40, min(120, round(table_lines * LINE_H / ART_CHAR_W)))
-    _, grid = ascii_art(img, cols)
-    svg = render_svg(grid, args.mode, title, rows)
+
+    if args.banner:
+        src = args.banner
+        img = Image.open(io.BytesIO(http_get(src)) if src.startswith(("http://", "https://")) else src)
+        _, _, content_w = banner_columns(rows)
+        cols = args.cols if args.cols > 0 else round(content_w / BANNER_CHAR_W)
+        _, grid = ascii_art(img, cols, square=False, char_w=BANNER_CHAR_W, line_h=BANNER_LINE_H,
+                            brightness=BANNER_BRIGHTNESS, circle=False, remove_bg=False, ramp=BANNER_RAMP,
+                            text=BANNER_TEXT)
+        svg = render_banner(grid, args.mode, title, rows)
+    else:
+        if args.avatar:
+            img = Image.open(args.avatar)
+        else:
+            img = Image.open(io.BytesIO(http_get(f"https://github.com/{args.user}.png?size=400")))
+        cols = args.cols
+        if cols <= 0:  # auto: portrait as tall as the table
+            cols = max(40, min(120, round(table_size(title, rows)[2] * LINE_H / ART_CHAR_W)))
+        _, grid = ascii_art(img, cols)
+        svg = render_portrait(grid, args.mode, title, rows)
 
     with open(args.out, "w", encoding="utf-8") as fh:
         fh.write(svg)

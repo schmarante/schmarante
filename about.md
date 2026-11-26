@@ -8,11 +8,9 @@
 -->
 # schmarante@github
 
-- OS: Windows/WSL2 · Linux · Android
 - Uptime: {{UPTIME}}
-- Host: GitHub · Vibe-Coding-Playground
+- Location: Germany
 - Kernel: Curiosity
-- IDE: VSCode
 - Languages.Code: PHP, TypeScript, Python
 - Languages.Real: German, English
 - Hobbies: AI, 3D, Cooking, Games, Music

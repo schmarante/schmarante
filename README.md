@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./about.svg" width="100%" alt="ASCII portrait of schmarante next to a neofetch-style info table: OS, uptime, IDE, languages, hobbies, contact and GitHub stats">
+  <img src="./about.svg" width="100%" alt="schmarante banner as colored ASCII art, below a neofetch-style info card: about, contact and GitHub stats">
 </p>
 
 ### Hey there 👋

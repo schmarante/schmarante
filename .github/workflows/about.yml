@@ -9,6 +9,7 @@ on:
     paths:
       - about.md
       - scripts/render_about.py
+      - about.jpg
       - .github/workflows/about.yml
 
 permissions:
@@ -31,7 +32,7 @@ jobs:
       - run: pip install pillow
 
       - name: Render
-        run: python scripts/render_about.py
+        run: python scripts/render_about.py --banner about.jpg
         env:
           ENV_BIRTHDAY: ${{ vars.ENV_BIRTHDAY }}
           # optional: repo secret STATS_TOKEN (fine-grained PAT, public read-only) if the default token is not enough
