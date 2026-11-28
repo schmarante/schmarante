@@ -54,7 +54,7 @@ text{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberatio
 <text x="86.4" y="376.0" class="rule">──────────────────────────────────────────────────</text>
 <text x="24.0" y="392.0" class="key" textLength="54.6" lengthAdjust="spacingAndGlyphs">Uptime:</text>
 <text x="78.6" y="392.0" class="dots" textLength="93.6" lengthAdjust="spacingAndGlyphs"> .......... </text>
-<text x="172.2" y="392.0" class="value" textLength="202.8" lengthAdjust="spacingAndGlyphs">44 years, 5 months, 5 days</text>
+<text x="172.2" y="392.0" class="value" textLength="202.8" lengthAdjust="spacingAndGlyphs">44 years, 5 months, 6 days</text>
 <text x="24.0" y="408.0" class="key" textLength="70.2" lengthAdjust="spacingAndGlyphs">Location:</text>
 <text x="94.2" y="408.0" class="dots" textLength="78.0" lengthAdjust="spacingAndGlyphs"> ........ </text>
 <text x="172.2" y="408.0" class="value" textLength="54.6" lengthAdjust="spacingAndGlyphs">Germany</text>
